@@ -1,4 +1,8 @@
 const router = require('express').Router();
+const bcryptjs = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// models
 const User = require('../model/User');
 
 // @route   GET api/users
@@ -110,16 +114,17 @@ router.post('/register', async (req, res) => {
     return;
   }
 
+  // hash password
+  const salt = await bcryptjs.genSalt(10);
+  const hashPassword = await bcryptjs.hash(password, salt);
+
   // create new user
   const user = new User({
     first_name,
     last_name,
     email,
-    password,
+    password: hashPassword,
   });
-
-  console.log('user', user)
-  console.log('body: ', req.body)
 
   try {
     await user.save();
@@ -129,7 +134,7 @@ router.post('/register', async (req, res) => {
     })
   } catch(err) {
     res.status(500).json({
-      msg: 'Register fail',
+      msg: err,
       isSuccess: false,
     })
   }
@@ -138,7 +143,7 @@ router.post('/register', async (req, res) => {
 // @route   POST api/users/login
 // @desc    Login user
 router.post('/login', async (req, res) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
 
   // check email exist
   const user = await User.findOne({ email });
@@ -150,10 +155,66 @@ router.post('/login', async (req, res) => {
     return;
   }
 
-  res.status(200).json({
-    isSuccess: true,
-    msg: 'Login success',
-  })
+  // check valid password
+  const isValidPassword = await bcryptjs.compare(password, user.password);
+  if(!isValidPassword) {
+    res.status(400).json({
+      msg: 'Email or password is wrong',
+      isSuccess: false,
+    })
+    return;
+  }
+
+  // create token
+  const payload = {
+    user: {
+      id: user._id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+    }
+  }
+
+  jwt.sign(
+    payload,
+    'vinhquy',
+    { expiresIn: 3600 },
+    (err, token) => {
+      if(err) throw err;
+      res.status(200).json({
+        isSuccess: true,
+        msg: 'Login success',
+        token,
+      })
+    }
+  )
+})
+
+// @route   POST api/users/verify
+// @desc    Authnicate user
+router.post('/verify', async (req, res) => {
+  const accessToken = req.header('x-auth-token');
+
+  if(!accessToken) {
+    res.status(400).json({
+      msg: 'No token, authorization denied',
+      isSuccess: false,
+    })
+    return;
+  }
+
+  try {
+    const user = jwt.verify(accessToken, 'vinhquy');
+    res.status(200).json({
+      user,
+      isSuccess: true,
+    })
+  } catch(err) {
+    res.status(500).json({
+      msg: 'Token is not valid',
+      isSuccess: false,
+    })
+  }
 })
 
 
