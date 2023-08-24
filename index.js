@@ -2,15 +2,18 @@ const express = require('express')
 const cors = require('cors');
 const app = express()
 const mongoose = require('mongoose');
-const port = 3000;
+const dotenv = require('dotenv');
 
 const userRouter = require('./routes/users')
 
+dotenv.config();
 app.use(cors());
+
+const port = process.env.PORT || 3000;
 
 // connect DB
 mongoose.connect('mongodb+srv://vinhquy:5YXbS14jIl5u5xU2@cluster0.1ibzghu.mongodb.net/?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
+  useNewUrlParser: true,  
 }).catch(error => console.log('Connect fail: ', error));
 
 app.use(express.json({ extended: true }));

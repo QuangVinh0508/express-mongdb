@@ -177,7 +177,7 @@ router.post('/login', async (req, res) => {
 
   jwt.sign(
     payload,
-    'vinhquy',
+    process.env.SECRET_KEY,
     { expiresIn: 3600 },
     (err, token) => {
       if(err) throw err;
@@ -204,7 +204,7 @@ router.post('/verify', async (req, res) => {
   }
 
   try {
-    const user = jwt.verify(accessToken, 'vinhquy');
+    const user = jwt.verify(accessToken, process.env.SECRET_KEY);
     res.status(200).json({
       user,
       isSuccess: true,
