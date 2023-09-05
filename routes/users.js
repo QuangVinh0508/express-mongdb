@@ -2,18 +2,21 @@ const router = require('express').Router();
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// middleware
+const auth = require('../middleware/auth');
+
 // models
 const User = require('../model/User');
 
 // @route   GET api/users
 // @desc    Get all users
-router.get('/', async (_, res) => {
+router.get('/', auth, async (_, res) => {
   // code login to save data in DB
   try {
     const users = await User.find().sort({ createAt: -1 });
     res.status(200).json({
       isSuccess: true,
-      data: users,
+      data: users, 
     })
   } catch(err) {
     res.status(500).json({
